@@ -1,0 +1,25 @@
+.layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+.main {
+  flex: 1;
+  margin-left: 220px;
+  padding: 2rem 2.5rem;
+  min-height: 100vh;
+}
+
+.topbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 20px;
+}
+
+.search {
+  width: 300px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
