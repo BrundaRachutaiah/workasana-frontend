@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
-import api from "../api/api";
+import api, { API_BASE_URL } from "../api/api";
+import { useAuth } from "../context/AuthContext";
 
 const TaskForm = ({ onClose, onCreated, projectId }) => {
+  const { user } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState("");
   const [form, setForm] = useState({
     name: "",
     project: projectId || "",
     team: "",
+    priority: "Medium",
+    status: "To Do",
     owners: [],
     tags: "",
     dueDate: "",
@@ -42,18 +48,31 @@ const TaskForm = ({ onClose, onCreated, projectId }) => {
     fetchData();
   }, []);
 
+  // Preselect current user as owner (so task creation works out-of-the-box)
+  useEffect(() => {
+    const myId = user?._id;
+    if (!myId) return;
+    setForm((prev) => {
+      if (prev.owners.length > 0) return prev;
+      return { ...prev, owners: [myId] };
+    });
+  }, [user?._id]);
+
   const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
+    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
 
     if (form.owners.length === 0) {
-  return alert("Please select at least one owner");
-}
+      setError("Please select at least one owner.");
+      return;
+    }
 
     try {
+      setIsSubmitting(true);
       const payload = {
         ...form,
         tags: form.tags
@@ -61,24 +80,66 @@ const TaskForm = ({ onClose, onCreated, projectId }) => {
           : []
       };
 
+      if (!payload.dueDate) delete payload.dueDate;
+      if (payload.timeToComplete === "" || payload.timeToComplete === null) {
+        delete payload.timeToComplete;
+      }
+
       await api.post("/tasks", payload);
 
-setForm({
-  name: "",
-  project: projectId || "",
-  team: "",
-  owners: [],
-  tags: "",
-  dueDate: "",
-  timeToComplete: ""
-});
+      setForm({
+        name: "",
+        project: projectId || "",
+        team: "",
+        priority: "Medium",
+        status: "To Do",
+        owners: user?._id ? [user._id] : [],
+        tags: "",
+        dueDate: "",
+        timeToComplete: ""
+      });
 
-onCreated();
-onClose();
+      await onCreated?.();
+      onClose?.();
     } catch (err) {
-      alert(err.response?.data?.message || "Failed to create task");
+      const message = err.response?.data?.message || "Failed to create task";
+      const details = err.response?.data?.error;
+      const status = err.response?.status;
+      const apiMessage = details ? `${message}: ${details}` : message;
+      alert(
+        status
+          ? `${apiMessage}\n\nHTTP ${status}\nAPI: ${API_BASE_URL}`
+          : `${apiMessage}\n\nAPI: ${API_BASE_URL}`
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  const toggleOwner = (ownerId) => {
+    setForm((prev) => {
+      const current = prev.owners || [];
+      const next = current.includes(ownerId)
+        ? current.filter((id) => id !== ownerId)
+        : [...current, ownerId];
+      return { ...prev, owners: next };
+    });
+  };
+
+  const hasName = form.name.trim().length > 0;
+  const hasProjects = Boolean(projectId) || projects.length > 0;
+  const hasTeams = teams.length > 0;
+  const hasUsers = users.length > 0 || Boolean(user?._id);
+  const ownerOptions = users.length > 0 ? users : user?._id ? [user] : [];
+  const canSubmit =
+    hasProjects &&
+    hasTeams &&
+    hasUsers &&
+    Boolean(form.project) &&
+    Boolean(form.team) &&
+    hasName &&
+    form.owners.length > 0 &&
+    !isSubmitting;
 
   return (
     <div style={overlayStyle}>
@@ -100,6 +161,11 @@ onClose();
 
         {/* FORM */}
         <form onSubmit={handleSubmit} style={formStyle}>
+          {error ? (
+            <div style={errorBox}>
+              {error}
+            </div>
+          ) : null}
 
           {/* PROJECT */}
           <div style={field}>
@@ -125,6 +191,9 @@ onClose();
                 </>
               )}
             </select>
+            {!hasProjects ? (
+              <span style={helperText}>No projects found. Create a project first.</span>
+            ) : null}
           </div>
 
           {/* TASK NAME */}
@@ -133,6 +202,7 @@ onClose();
             <input
               name="name"
               placeholder="Enter Task Name"
+              value={form.name}
               onChange={handleChange}
               style={input}
               required
@@ -142,35 +212,75 @@ onClose();
           {/* TEAM */}
           <div style={field}>
             <label style={label}>Select Team</label>
-            <select name="team" onChange={handleChange} style={input} required>
+            <select name="team" value={form.team} onChange={handleChange} style={input} required>
               <option value="">Select Team</option>
               {teams.map(t => (
                 <option key={t._id} value={t._id}>{t.name}</option>
               ))}
             </select>
+            {!hasTeams ? (
+              <span style={helperText}>No teams found. Create a team first.</span>
+            ) : null}
+          </div>
+
+          {/* PRIORITY */}
+          <div style={field}>
+            <label style={label}>Priority</label>
+            <select name="priority" value={form.priority} onChange={handleChange} style={input}>
+              <option value="Low">Low</option>
+              <option value="Medium">Medium</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+
+          {/* STATUS */}
+          <div style={field}>
+            <label style={label}>Status</label>
+            <select name="status" value={form.status} onChange={handleChange} style={input}>
+              <option value="To Do">To Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Completed">Completed</option>
+            </select>
           </div>
 
           {/* OWNERS */}
-<div style={field}>
-  <label style={label}>Select Owners</label>
+          <div style={field}>
+            <label style={label}>Select Owners</label>
+            {!hasUsers ? (
+              <span style={helperText}>No users found.</span>
+            ) : (
+              <div style={ownersList}>
+                {ownerOptions.map((u) => {
+                  const checked = form.owners.includes(u._id);
+                  return (
+                    <label key={u._id} style={ownerItem}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleOwner(u._id)}
+                      />
+                      <span>
+                        {u.name} <span style={{ color: "#888" }}>({u.email})</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
 
-  <select
-    multiple
-    size={4}
-    value={form.owners}
-    onChange={(e) => {
-      const ids = [...e.target.selectedOptions].map(o => o.value);
-      setForm({ ...form, owners: ids });
-    }}
-    style={input}
-  >
-    {users.map(u => (
-      <option key={u._id} value={u._id}>
-        {u.name} ({u.email})
-      </option>
-    ))}
-  </select>
-</div>
+          {/* TAGS */}
+          <div style={field}>
+            <label style={label}>Tags (comma separated)</label>
+            <input
+              name="tags"
+              placeholder="eg: frontend, bug, urgent"
+              value={form.tags}
+              onChange={handleChange}
+              style={input}
+            />
+          </div>
 
           {/* DATE + TIME */}
           <div style={{ display: "flex", gap: "10px" }}>
@@ -179,6 +289,7 @@ onClose();
               <input
                 type="date"
                 name="dueDate"
+                value={form.dueDate}
                 onChange={handleChange}
                 style={input}
               />
@@ -190,6 +301,7 @@ onClose();
                 name="timeToComplete"
                 type="number"
                 placeholder="Enter Time in Days"
+                value={form.timeToComplete}
                 onChange={handleChange}
                 style={input}
               />
@@ -201,8 +313,8 @@ onClose();
             <button type="button" onClick={onClose} style={cancelBtn}>
               Cancel
             </button>
-            <button type="submit" style={createBtn}>
-              Create
+            <button type="submit" style={createBtn} disabled={!canSubmit}>
+              {isSubmitting ? "Creating..." : "Create"}
             </button>
           </div>
 
@@ -277,6 +389,38 @@ const input = {
   borderRadius: "6px",
   padding: "8px",
   fontSize: "13px"
+};
+
+const helperText = {
+  fontSize: "11px",
+  color: "#888"
+};
+
+const ownersList = {
+  border: "1px solid #e5e7eb",
+  borderRadius: "6px",
+  padding: "8px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "8px",
+  maxHeight: "130px",
+  overflowY: "auto"
+};
+
+const ownerItem = {
+  display: "flex",
+  gap: "8px",
+  alignItems: "center",
+  fontSize: "13px"
+};
+
+const errorBox = {
+  background: "#fef2f2",
+  border: "1px solid #fecaca",
+  color: "#991b1b",
+  padding: "8px 10px",
+  borderRadius: "8px",
+  fontSize: "12px"
 };
 
 const buttonRow = {

@@ -3,10 +3,12 @@ import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import api from "../api/api";
 import AddMemberModal from "../components/AddMemberModal";
+import { useSearch } from "../context/SearchContext";
 
 const TeamDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { searchTerm } = useSearch();
 
   const [team, setTeam] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -26,6 +28,13 @@ const TeamDetails = () => {
 
   if (!team) return <Layout>Loading...</Layout>;
 
+  const term = searchTerm.trim().toLowerCase();
+  const visibleMembers = term
+    ? (team.members || []).filter((m) =>
+        `${m?.name || ""} ${m?.email || ""}`.toLowerCase().includes(term)
+      )
+    : team.members || [];
+
   return (
     <Layout>
       {/* BACK */}
@@ -40,8 +49,8 @@ const TeamDetails = () => {
       <h4 style={section}>MEMBERS</h4>
 
       <div style={memberList}>
-  {team.members?.length > 0 ? (
-    team.members.map((m) => (
+  {visibleMembers.length > 0 ? (
+    visibleMembers.map((m) => (
       <div key={m._id} style={memberItem}>
         
         {/* Avatar */}
@@ -54,7 +63,9 @@ const TeamDetails = () => {
       </div>
     ))
   ) : (
-    <p style={{ color: "#888" }}>No members yet</p>
+    <p style={{ color: "#888" }}>
+      {term ? "No members match your search." : "No members yet"}
+    </p>
   )}
 </div>
 

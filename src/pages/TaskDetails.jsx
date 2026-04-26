@@ -8,14 +8,18 @@ const TaskDetails = () => {
   const navigate = useNavigate();
 
   const [task, setTask] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [error, setError] = useState("");
 
   // 🔹 Fetch Task
   const fetchTask = async () => {
     try {
+      setError("");
       const res = await api.get(`/tasks/${id}`);
       setTask(res.data);
     } catch (err) {
       console.error(err);
+      setError("Failed to load task.");
     }
   };
 
@@ -26,10 +30,25 @@ const TaskDetails = () => {
   // 🔹 Mark complete
   const markComplete = async () => {
     try {
+      setIsUpdating(true);
       await api.patch(`/tasks/${id}`, { status: "Completed" });
       fetchTask();
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const updateStatus = async (status) => {
+    try {
+      setIsUpdating(true);
+      await api.patch(`/tasks/${id}`, { status });
+      fetchTask();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsUpdating(false);
     }
   };
 
@@ -45,7 +64,17 @@ const TaskDetails = () => {
     return diff > 0 ? `${diff} days` : "Overdue";
   };
 
-  if (!task) return <Layout>Loading...</Layout>;
+  if (!task) return <Layout>{error || "Loading..."}</Layout>;
+
+  const history = [...(task.statusHistory || [])].sort(
+    (a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0)
+  );
+  const lastChange = history[0];
+  const formatDateTime = (value) => {
+    if (!value) return "-";
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? "-" : d.toLocaleString();
+  };
 
   return (
     <Layout>
@@ -68,6 +97,7 @@ const TaskDetails = () => {
 
         <Row label="Project" value={task.project?.name} />
         <Row label="Team" value={task.team?.name} />
+        <Row label="Priority" value={task.priority || "Medium"} />
         <Row
           label="Owners"
           value={task.owners?.map(o => o.name).join(", ") || "-"}
@@ -84,13 +114,55 @@ const TaskDetails = () => {
 
         <hr style={{ margin: "15px 0" }} />
 
-        <Row label="Status" value={<Status status={task.status} />} />
+        <Row
+          label="Status"
+          value={
+            <select
+              value={task.status}
+              onChange={(e) => updateStatus(e.target.value)}
+              disabled={isUpdating}
+              style={statusSelect}
+            >
+              <option value="To Do">To Do</option>
+              <option value="In Progress">In Progress</option>
+              <option value="Blocked">Blocked</option>
+              <option value="Completed">Completed</option>
+            </select>
+          }
+        />
+        <Row
+          label="Last Status Change"
+          value={
+            lastChange
+              ? `${formatDateTime(lastChange.changedAt)}${
+                  lastChange.changedBy?.name ? ` by ${lastChange.changedBy.name}` : ""
+                }`
+              : "-"
+          }
+        />
         <Row label="Time Remaining" value={getRemainingDays()} />
+
+        {history.length > 0 ? (
+          <div style={historyBox}>
+            <div style={historyTitle}>Status History</div>
+            <div style={historyList}>
+              {history.slice(0, 8).map((h, i) => (
+                <div key={i} style={historyRow}>
+                  <span style={historyStatus}>{h.status}</span>
+                  <span style={historyMeta}>
+                    {formatDateTime(h.changedAt)}
+                    {h.changedBy?.name ? ` • ${h.changedBy.name}` : ""}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
 
         {/* BUTTON */}
         {task.status !== "Completed" && (
-          <button onClick={markComplete} style={completeBtn}>
-            Mark as Complete
+          <button onClick={markComplete} style={completeBtn} disabled={isUpdating}>
+            {isUpdating ? "Updating..." : "Mark as Complete"}
           </button>
         )}
       </div>
@@ -107,12 +179,6 @@ const Row = ({ label, value }) => (
     <span>{label}:</span>
     <b>{value}</b>
   </div>
-);
-
-const Status = ({ status }) => (
-  <span style={statusStyle(status)}>
-    {status}
-  </span>
 );
 
 /* 🔹 STYLES */
@@ -158,18 +224,49 @@ const completeBtn = {
   cursor: "pointer"
 };
 
-const statusStyle = (status) => ({
-  padding: "3px 8px",
+const statusSelect = {
+  border: "1px solid #e5e7eb",
   borderRadius: "6px",
+  padding: "4px 8px",
   fontSize: "12px",
-  background:
-    status === "Completed"
-      ? "#dcfce7"
-      : status === "In Progress"
-      ? "#fef3c7"
-      : "#eee",
-  color:
-    status === "Completed"
-      ? "#166534"
-      : "#92400e"
-});
+  background: "#fff"
+};
+
+const historyBox = {
+  marginTop: "10px",
+  border: "1px solid #e5e7eb",
+  borderRadius: "10px",
+  padding: "10px",
+  background: "#f9fafb",
+};
+
+const historyTitle = {
+  fontSize: "12px",
+  fontWeight: 600,
+  marginBottom: "8px",
+  color: "#111",
+};
+
+const historyList = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "6px",
+};
+
+const historyRow = {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "10px",
+  fontSize: "12px",
+};
+
+const historyStatus = {
+  fontWeight: 600,
+  color: "#111",
+};
+
+const historyMeta = {
+  color: "#6b7280",
+  textAlign: "right",
+};

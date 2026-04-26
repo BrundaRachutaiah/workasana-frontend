@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
+import { useSearch } from "../context/SearchContext";
 import api from "../api/api";
 
 import ProjectCard from "../components/ProjectCard";
@@ -10,6 +11,7 @@ import ProjectModal from "../components/ProjectModal";
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { searchTerm } = useSearch();
 
   const [projects, setProjects] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -33,6 +35,31 @@ const Dashboard = () => {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const term = searchTerm.trim().toLowerCase();
+  const visibleProjects = term
+    ? projects.filter((p) =>
+        `${p.name || ""} ${p.description || ""} ${p.status || ""}`
+          .toLowerCase()
+          .includes(term)
+      )
+    : projects;
+
+  const visibleTasks = term
+    ? tasks.filter((t) =>
+        [
+          t.name || "",
+          t.status || "",
+          t.project?.name || "",
+          t.team?.name || "",
+          (t.owners || []).map((o) => o?.name || "").join(" "),
+          (t.tags || []).join(" "),
+        ]
+          .join(" ")
+          .toLowerCase()
+          .includes(term)
+      )
+    : tasks;
 
   return (
     <Layout>
@@ -78,13 +105,13 @@ const Dashboard = () => {
         </div>
 
         <div style={{ display: "flex", gap: "12px", marginTop: "12px", flexWrap: "wrap" }}>
-          {projects.length > 0 ? (
-            projects.map((p) => (
+          {visibleProjects.length > 0 ? (
+            visibleProjects.map((p) => (
               <ProjectCard key={p._id} project={p} />
             ))
           ) : (
             <p style={{ color: "#888", fontSize: "13px" }}>
-              No projects yet.
+              {term ? "No projects match your search." : "No projects yet."}
             </p>
           )}
         </div>
@@ -117,13 +144,13 @@ const Dashboard = () => {
   marginTop: "12px",
   flexWrap: "wrap"
 }}>
-          {tasks.length > 0 ? (
-            tasks.map((t) => (
+          {visibleTasks.length > 0 ? (
+            visibleTasks.map((t) => (
               <TaskCard key={t._id} task={t} />
             ))
           ) : (
             <p style={{ color: "#888", fontSize: "13px" }}>
-              No tasks yet.
+              {term ? "No tasks match your search." : "No tasks yet."}
             </p>
           )}
         </div>

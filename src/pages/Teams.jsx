@@ -3,10 +3,12 @@ import Layout from "../components/Layout";
 import api from "../api/api";
 import TeamModal from "../components/TeamModal";
 import TeamCard from "../components/TeamCard";
+import { useSearch } from "../context/SearchContext";
 
 const Teams = () => {
   const [teams, setTeams] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const { searchTerm } = useSearch();
 
   const fetchTeams = async () => {
     try {
@@ -21,6 +23,16 @@ const Teams = () => {
     fetchTeams();
   }, []);
 
+  const term = searchTerm.trim().toLowerCase();
+  const visibleTeams = term
+    ? teams.filter((t) => {
+        const memberNames = (t.members || []).map((m) => m?.name || "").join(" ");
+        return `${t.name || ""} ${t.description || ""} ${memberNames}`
+          .toLowerCase()
+          .includes(term);
+      })
+    : teams;
+
   return (
     <Layout>
       {/* HEADER */}
@@ -33,9 +45,15 @@ const Teams = () => {
       </div>
 
       <div style={grid}>
-        {teams.map(team => (
-          <TeamCard key={team._id} team={team} />
-        ))}
+        {visibleTeams.length > 0 ? (
+          visibleTeams.map((team) => (
+            <TeamCard key={team._id} team={team} />
+          ))
+        ) : (
+          <p style={{ color: "#888" }}>
+            {term ? "No teams match your search." : "No teams yet."}
+          </p>
+        )}
       </div>
 
       {/* MODAL */}
@@ -76,34 +94,4 @@ const grid = {
   gap: "20px",
   marginTop: "20px",
   flexWrap: "wrap"
-};
-
-const card = {
-  background: "#f9fafb",
-  padding: "15px",
-  borderRadius: "10px",
-  width: "250px",
-  border: "1px solid #eee"
-};
-
-const teamName = {
-  fontSize: "14px",
-  fontWeight: 600,
-  marginBottom: "10px"
-};
-
-const avatars = {
-  display: "flex",
-  gap: "5px"
-};
-
-const avatar = {
-  width: "28px",
-  height: "28px",
-  borderRadius: "50%",
-  background: "#e0e7ff",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  fontSize: "12px"
 };

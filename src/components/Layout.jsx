@@ -1,7 +1,10 @@
 import Sidebar from "./Sidebar";
 import styles from "./Layout.module.css";
+import { useSearch } from "../context/SearchContext";
 
 const Layout = ({ children }) => {
+  const { searchTerm, setSearchTerm } = useSearch();
+
   return (
     <div className={styles.layout}>
       <Sidebar />
@@ -13,6 +16,8 @@ const Layout = ({ children }) => {
             type="text"
             placeholder="Search"
             className={styles.search}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
 

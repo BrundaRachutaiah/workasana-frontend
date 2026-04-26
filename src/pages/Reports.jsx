@@ -29,22 +29,33 @@ ChartJS.register(
 const Reports = () => {
   const [lastWeek, setLastWeek] = useState(0);
   const [pending, setPending] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [byTeam, setByTeam] = useState([]);
   const [byOwner, setByOwner] = useState([]);
+  const [byProject, setByProject] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const fetchReports = async () => {
       try {
+        setError("");
+        setIsLoading(true);
         const last = await api.get("/report/last-week");
         const pend = await api.get("/report/pending");
         const closed = await api.get("/report/closed-tasks");
 
         setLastWeek(last.data.count);
         setPending(pend.data.totalDaysPending);
+        setPendingCount(pend.data.taskCount || 0);
         setByTeam(closed.data.byTeam);
         setByOwner(closed.data.byOwner);
+        setByProject(closed.data.byProject || []);
       } catch (err) {
         console.error(err);
+        setError("Failed to load reports.");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -73,11 +84,21 @@ const Reports = () => {
     ]
   };
 
-  const summaryData = {
-    labels: ["Completed", "Pending"],
+  const projectData = {
+    labels: byProject.map(p => p.projectName || "Unknown"),
     datasets: [
       {
-        data: [lastWeek, pending]
+        label: "Tasks Closed",
+        data: byProject.map(p => p.count)
+      }
+    ]
+  };
+
+  const summaryData = {
+    labels: ["Completed (last 7 days)", "Open Tasks"],
+    datasets: [
+      {
+        data: [lastWeek, pendingCount]
       }
     ]
   };
@@ -93,26 +114,34 @@ const Reports = () => {
       <div style={container}>
         <h2 style={sectionTitle}>Report Overview</h2>
 
+        {isLoading ? (
+          <p style={{ color: "#888" }}>Loading reports...</p>
+        ) : error ? (
+          <p style={{ color: "#b91c1c" }}>{error}</p>
+        ) : null}
+
         {/* GRID */}
         <div style={grid}>
           
           {/* CARD 1 */}
           <div style={card}>
             <h3 style={cardTitle}>
-              Total Work Done Last Week
+              Tasks Completed Last Week
             </h3>
-            <div style={chartBox}>
-              <Bar data={teamData} />
+            <div style={statBox}>
+              <div style={bigStat}>{lastWeek}</div>
+              <div style={smallStat}>completed tasks (last 7 days)</div>
             </div>
           </div>
 
           {/* CARD 2 */}
           <div style={card}>
             <h3 style={cardTitle}>
-              Total Days of Work Pending
+              Open Work
             </h3>
-            <div style={chartBox}>
-              <Pie data={summaryData} />
+            <div style={statBox}>
+              <div style={bigStat}>{pending}</div>
+              <div style={smallStat}>total days pending across {pendingCount} open tasks</div>
             </div>
           </div>
 
@@ -122,7 +151,49 @@ const Reports = () => {
               Tasks Closed by Team
             </h3>
             <div style={chartBox}>
-              <Bar data={teamData} />
+              {byTeam.length > 0 ? (
+                <Bar data={teamData} />
+              ) : (
+                <p style={{ color: "#888" }}>No completed tasks yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* CARD 4 */}
+          <div style={card}>
+            <h3 style={cardTitle}>
+              Tasks Closed by Owner
+            </h3>
+            <div style={chartBox}>
+              {byOwner.length > 0 ? (
+                <Bar data={ownerData} />
+              ) : (
+                <p style={{ color: "#888" }}>No completed tasks yet.</p>
+              )}
+            </div>
+          </div>
+
+          {/* CARD 5 */}
+          <div style={card}>
+            <h3 style={cardTitle}>
+              Completed vs Open
+            </h3>
+            <div style={chartBox}>
+              <Pie data={summaryData} />
+            </div>
+          </div>
+
+          {/* CARD 6 */}
+          <div style={card}>
+            <h3 style={cardTitle}>
+              Tasks Closed by Project
+            </h3>
+            <div style={chartBox}>
+              {byProject.length > 0 ? (
+                <Bar data={projectData} />
+              ) : (
+                <p style={{ color: "#888" }}>No completed tasks yet.</p>
+              )}
             </div>
           </div>
 
@@ -173,4 +244,24 @@ const cardTitle = {
 
 const chartBox = {
   height: "250px"
+};
+
+const statBox = {
+  height: "250px",
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: "8px"
+};
+
+const bigStat = {
+  fontSize: "44px",
+  fontWeight: 700,
+  color: "#111"
+};
+
+const smallStat = {
+  fontSize: "12px",
+  color: "#6b7280"
 };

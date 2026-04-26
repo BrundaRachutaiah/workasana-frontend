@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Layout from "../components/Layout";
 import api from "../api/api";
+import { useSearch } from "../context/SearchContext";
 
 import ProjectCard from "../components/ProjectCard";
 import ProjectModal from "../components/ProjectModal";
@@ -8,6 +9,7 @@ import ProjectModal from "../components/ProjectModal";
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const { searchTerm } = useSearch();
 
   const fetchProjects = async () => {
     try {
@@ -21,6 +23,15 @@ const Projects = () => {
   useEffect(() => {
     fetchProjects();
   }, []);
+
+  const term = searchTerm.trim().toLowerCase();
+  const visibleProjects = term
+    ? projects.filter((p) =>
+        `${p.name || ""} ${p.description || ""} ${p.status || ""}`
+          .toLowerCase()
+          .includes(term)
+      )
+    : projects;
 
   return (
     <Layout>
@@ -52,12 +63,14 @@ const Projects = () => {
         marginTop: "20px",
         flexWrap: "wrap"
       }}>
-        {projects.length > 0 ? (
-          projects.map((p) => (
+        {visibleProjects.length > 0 ? (
+          visibleProjects.map((p) => (
             <ProjectCard key={p._id} project={p} />
           ))
         ) : (
-          <p style={{ color: "#888" }}>No projects yet.</p>
+          <p style={{ color: "#888" }}>
+            {term ? "No projects match your search." : "No projects yet."}
+          </p>
         )}
       </div>
 
