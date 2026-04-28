@@ -22,7 +22,8 @@ const Dashboard = () => {
   const fetchData = async () => {
     try {
       const projRes = await api.get("/projects");
-      const taskRes = await api.get("/tasks");
+      const taskUrl = user?._id ? `/tasks?owner=${user._id}` : "/tasks";
+      const taskRes = await api.get(taskUrl);
 
       setProjects(projRes.data);
       setTasks(taskRes.data);
@@ -33,8 +34,9 @@ const Dashboard = () => {
 
   // Initial load
   useEffect(() => {
+    if (!user?._id) return;
     fetchData();
-  }, []);
+  }, [user?._id]);
 
   const term = searchTerm.trim().toLowerCase();
   const visibleProjects = term
