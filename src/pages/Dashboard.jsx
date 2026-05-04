@@ -17,6 +17,8 @@ const Dashboard = () => {
   const [tasks, setTasks] = useState([]);
   const [showTaskModal, setShowTaskModal] = useState(false); // ✅ modal state
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [projectStatusFilter, setProjectStatusFilter] = useState("");
+  const [showProjectFilter, setShowProjectFilter] = useState(false);
 
   // Fetch data function (reusable)
   const fetchData = async () => {
@@ -39,13 +41,17 @@ const Dashboard = () => {
   }, [user?._id]);
 
   const term = searchTerm.trim().toLowerCase();
+  const projectsAfterStatus = projectStatusFilter
+    ? projects.filter((p) => p.status === projectStatusFilter)
+    : projects;
+
   const visibleProjects = term
-    ? projects.filter((p) =>
+    ? projectsAfterStatus.filter((p) =>
         `${p.name || ""} ${p.description || ""} ${p.status || ""}`
           .toLowerCase()
           .includes(term)
       )
-    : projects;
+    : projectsAfterStatus;
 
   const visibleTasks = term
     ? tasks.filter((t) =>
@@ -76,18 +82,37 @@ const Dashboard = () => {
       {/* Projects Section */}
       <div style={{ marginBottom: "30px" }}>
         <div style={{ display: "flex", justifyContent: "space-between" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", position: "relative" }}>
   <h2 style={{ fontSize: "16px", fontWeight: 600 }}>Projects</h2>
 
-  <button style={{
+  <button onClick={() => setShowProjectFilter((v) => !v)} style={{
     padding: "4px 10px",
     border: "1px solid #ddd",
     borderRadius: "6px",
     background: "#fff",
-    fontSize: "12px"
+    fontSize: "12px",
+    cursor: "pointer"
   }}>
-    Filter
+    {projectStatusFilter ? `Filter: ${projectStatusFilter}` : "Filter"}
   </button>
+
+  {showProjectFilter ? (
+    <div style={filterMenu}>
+      {["", "Not Started", "In Progress", "Completed"].map((status) => (
+        <button
+          key={status || "all"}
+          type="button"
+          onClick={() => {
+            setProjectStatusFilter(status);
+            setShowProjectFilter(false);
+          }}
+          style={filterOption(projectStatusFilter === status)}
+        >
+          {status || "All"}
+        </button>
+      ))}
+    </div>
+  ) : null}
 </div>
 
           {/* (Project modal will be added later) */}
@@ -178,3 +203,28 @@ const Dashboard = () => {
 };
 
 export default Dashboard;
+
+const filterMenu = {
+  position: "absolute",
+  top: "32px",
+  left: "70px",
+  minWidth: "170px",
+  background: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: "8px",
+  boxShadow: "0 10px 25px rgba(0,0,0,0.12)",
+  padding: "6px",
+  zIndex: 20,
+};
+
+const filterOption = (active) => ({
+  width: "100%",
+  textAlign: "left",
+  padding: "8px 10px",
+  border: "none",
+  borderRadius: "6px",
+  background: active ? "#EEF2FF" : "transparent",
+  color: active ? "#3730A3" : "#111827",
+  cursor: "pointer",
+  fontSize: "12px",
+});

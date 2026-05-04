@@ -1,11 +1,13 @@
 import { useState } from "react";
-import api from "../api/api";
+import api, { API_BASE_URL } from "../api/api";
 
 const ProjectModal = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
     name: "",
     description: ""
   });
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -13,13 +15,31 @@ const ProjectModal = ({ onClose, onCreated }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return;
+    setError("");
+    setSubmitting(true);
 
     try {
       await api.post("/projects", form);
-      onCreated();
-      onClose();
+      if (typeof onCreated === "function") onCreated();
+      if (typeof onClose === "function") onClose();
     } catch (err) {
       console.error(err);
+
+      const status = err?.response?.status;
+      const apiMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to create project.";
+
+      setError(
+        typeof status === "number"
+          ? `${apiMessage}\n\nHTTP ${status}\nAPI: ${API_BASE_URL}`
+          : `${apiMessage}\n\nAPI: ${API_BASE_URL}`
+      );
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -47,6 +67,7 @@ const ProjectModal = ({ onClose, onCreated }) => {
               name="name"
               placeholder="Enter Project Name"
               onChange={handleChange}
+              value={form.name}
               required
               style={input}
             />
@@ -58,9 +79,14 @@ const ProjectModal = ({ onClose, onCreated }) => {
               name="description"
               placeholder="Enter Project Description"
               onChange={handleChange}
+              value={form.description}
               style={{ ...input, height: "80px", resize: "none" }}
             />
           </div>
+
+          {error ? (
+            <pre style={errorBox}>{error}</pre>
+          ) : null}
 
           {/* ACTIONS */}
           <div style={actions}>
@@ -68,8 +94,16 @@ const ProjectModal = ({ onClose, onCreated }) => {
               Cancel
             </button>
 
-            <button type="submit" style={createBtn}>
-              Create
+            <button
+              type="submit"
+              style={{
+                ...createBtn,
+                opacity: submitting ? 0.7 : 1,
+                cursor: submitting ? "not-allowed" : "pointer",
+              }}
+              disabled={submitting}
+            >
+              {submitting ? "Creating..." : "Create"}
             </button>
           </div>
         </form>
@@ -144,6 +178,17 @@ const actions = {
   justifyContent: "flex-end",
   gap: "10px",
   marginTop: "10px"
+};
+
+const errorBox = {
+  marginTop: "10px",
+  padding: "10px",
+  background: "#FEF2F2",
+  border: "1px solid #FECACA",
+  borderRadius: "8px",
+  color: "#991B1B",
+  fontSize: "12px",
+  whiteSpace: "pre-wrap"
 };
 
 const cancelBtn = {
