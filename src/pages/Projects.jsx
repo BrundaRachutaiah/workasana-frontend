@@ -5,18 +5,23 @@ import { useSearch } from "../context/SearchContext";
 
 import ProjectCard from "../components/ProjectCard";
 import ProjectModal from "../components/ProjectModal";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { searchTerm } = useSearch();
 
   const fetchProjects = async () => {
     try {
+      setIsLoading(true);
       const res = await api.get("/projects");
       setProjects(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,6 +40,7 @@ const Projects = () => {
 
   return (
     <Layout>
+      <LoadingOverlay show={isLoading} label="Loading projects…" />
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600 }}>

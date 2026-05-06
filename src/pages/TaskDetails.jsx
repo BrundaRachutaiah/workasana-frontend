@@ -2,12 +2,14 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import api from "../api/api";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 const TaskDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
   const [task, setTask] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState("");
 
@@ -15,11 +17,14 @@ const TaskDetails = () => {
   const fetchTask = async () => {
     try {
       setError("");
+      setIsLoading(true);
       const res = await api.get(`/tasks/${id}`);
       setTask(res.data);
     } catch (err) {
       console.error(err);
       setError("Failed to load task.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -64,7 +69,16 @@ const TaskDetails = () => {
     return diff > 0 ? `${diff} days` : "Overdue";
   };
 
-  if (!task) return <Layout>{error || "Loading..."}</Layout>;
+  if (!task) {
+    return (
+      <Layout>
+        <LoadingOverlay show={isLoading} label="Loading task…" />
+        <div style={{ color: error ? "#b91c1c" : "#64748b" }}>
+          {error || "Loading…"}
+        </div>
+      </Layout>
+    );
+  }
 
   const history = [...(task.statusHistory || [])].sort(
     (a, b) => new Date(b.changedAt || 0) - new Date(a.changedAt || 0)
@@ -78,6 +92,7 @@ const TaskDetails = () => {
 
   return (
     <Layout>
+      <LoadingOverlay show={isLoading} label="Loading task…" />
       {/* TITLE */}
       <h1 style={{ fontSize: "20px", fontWeight: 600 }}>
         Task: {task.name}

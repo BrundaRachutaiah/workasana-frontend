@@ -4,6 +4,7 @@ import Layout from "../components/Layout";
 import api from "../api/api";
 import TaskForm from "../components/TaskForm";
 import { useSearch } from "../context/SearchContext";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 const ProjectView = () => {
   const { id } = useParams();
@@ -123,6 +124,7 @@ const ProjectView = () => {
 
   return (
     <Layout>
+      <LoadingOverlay show={isLoading} label="Loading project…" />
       {/* TITLE */}
       <h1 style={{ fontSize: "20px", fontWeight: 600 }}>
         {project?.name}

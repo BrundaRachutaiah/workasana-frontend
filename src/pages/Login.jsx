@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import styles from "./Auth.module.css";
+import { InlineSpinner } from "../components/LoadingOverlay";
 
 const Login = () => {
   const { login } = useAuth();
@@ -69,7 +70,13 @@ const Login = () => {
   </div>
 </div>
           <button type="submit" className={styles.btn} disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? (
+              <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
+                <InlineSpinner title="Signing in" /> Signing in...
+              </span>
+            ) : (
+              "Sign in"
+            )}
           </button>
         </form>
 

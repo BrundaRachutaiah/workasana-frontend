@@ -4,6 +4,22 @@ import Layout from "../components/Layout";
 import api from "../api/api";
 import AddMemberModal from "../components/AddMemberModal";
 import { useSearch } from "../context/SearchContext";
+import LoadingOverlay from "../components/LoadingOverlay";
+
+const getInitials = (member) => {
+  if (!member) return "?";
+  if (typeof member === "string") return "U";
+
+  const raw = member.name || member.email || "";
+  const first = raw.trim().charAt(0);
+  return first ? first.toUpperCase() : "U";
+};
+
+const getDisplayName = (member) => {
+  if (!member) return "Unknown user";
+  if (typeof member === "string") return "Unknown user";
+  return member.name || member.email || "Unknown user";
+};
 
 const TeamDetails = () => {
   const { id } = useParams();
@@ -12,69 +28,74 @@ const TeamDetails = () => {
 
   const [team, setTeam] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const fetchTeam = async () => {
     try {
+      setIsLoading(true);
       const res = await api.get(`/teams/${id}`);
       setTeam(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchTeam();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  if (!team) return <Layout>Loading...</Layout>;
+  if (!team) {
+    return (
+      <Layout>
+        <LoadingOverlay show={isLoading} label="Loading team…" />
+        <div style={{ color: "#64748b" }}>Loading…</div>
+      </Layout>
+    );
+  }
 
   const term = searchTerm.trim().toLowerCase();
+  const members = Array.isArray(team.members) ? team.members : [];
   const visibleMembers = term
-    ? (team.members || []).filter((m) =>
+    ? members.filter((m) =>
         `${m?.name || ""} ${m?.email || ""}`.toLowerCase().includes(term)
       )
-    : team.members || [];
+    : members;
 
   return (
     <Layout>
-      {/* BACK */}
+      <LoadingOverlay show={isLoading} label="Loading team…" />
       <button style={backBtn} onClick={() => navigate("/teams")}>
         ← Back to Teams
       </button>
 
-      {/* TITLE */}
       <h1 style={title}>{team.name}</h1>
 
-      {/* MEMBERS */}
       <h4 style={section}>MEMBERS</h4>
 
       <div style={memberList}>
-  {visibleMembers.length > 0 ? (
-    visibleMembers.map((m) => (
-      <div key={m._id} style={memberItem}>
-        
-        {/* Avatar */}
-        <div style={avatar}>
-          {m.name?.charAt(0).toUpperCase()}
-        </div>
-
-        {/* Name */}
-        <span>{m.name}</span>
+        {visibleMembers.length > 0 ? (
+          visibleMembers.map((m, idx) => (
+            <div key={m?._id || m?.id || `m-${idx}`} style={memberItem}>
+              <div style={avatar} title={m?.email || ""}>
+                {getInitials(m)}
+              </div>
+              <span>{getDisplayName(m)}</span>
+            </div>
+          ))
+        ) : (
+          <p style={{ color: "#888" }}>
+            {term ? "No members match your search." : "No members yet"}
+          </p>
+        )}
       </div>
-    ))
-  ) : (
-    <p style={{ color: "#888" }}>
-      {term ? "No members match your search." : "No members yet"}
-    </p>
-  )}
-</div>
 
-      {/* ADD BUTTON */}
       <button style={addBtn} onClick={() => setShowModal(true)}>
         + Member
       </button>
 
-      {/* MODAL */}
       {showModal && (
         <AddMemberModal
           teamId={id}

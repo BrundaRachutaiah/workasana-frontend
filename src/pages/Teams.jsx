@@ -4,18 +4,23 @@ import api from "../api/api";
 import TeamModal from "../components/TeamModal";
 import TeamCard from "../components/TeamCard";
 import { useSearch } from "../context/SearchContext";
+import LoadingOverlay from "../components/LoadingOverlay";
 
 const Teams = () => {
   const [teams, setTeams] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { searchTerm } = useSearch();
 
   const fetchTeams = async () => {
     try {
+      setIsLoading(true);
       const res = await api.get("/teams");
       setTeams(res.data);
     } catch (err) {
       console.error(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -35,6 +40,7 @@ const Teams = () => {
 
   return (
     <Layout>
+      <LoadingOverlay show={isLoading} label="Loading teams…" />
       {/* HEADER */}
       <div style={header}>
         <h1 style={title}>Teams</h1>
