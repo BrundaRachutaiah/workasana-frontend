@@ -2,7 +2,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import styles from "./Sidebar.module.css";
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen = false, onNavigate, showClose = false, onClose }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -19,8 +19,23 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={`${styles.sidebar} ${isOpen ? styles.open : ""}`.trim()}>
+      {showClose ? (
+        <div className={styles.mobileHeader}>
+          <div className={styles.brand}>workasana</div>
+          <button
+            type="button"
+            className={styles.closeBtn}
+            onClick={onClose}
+            aria-label="Close menu"
+            title="Close"
+          >
+            ×
+          </button>
+        </div>
+      ) : (
       <div className={styles.brand}>workasana</div>
+      )}
 
       <nav className={styles.nav}>
         {navItems.map((item) => (
@@ -30,6 +45,7 @@ const Sidebar = () => {
             className={({ isActive }) =>
               `${styles.navItem} ${isActive ? styles.active : ""}`
             }
+            onClick={onNavigate}
           >
             <span className={styles.icon}>{item.icon}</span>
             {item.label}

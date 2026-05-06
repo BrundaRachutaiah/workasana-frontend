@@ -348,7 +348,9 @@ const tableContainer = {
   background: "#fff",
   borderRadius: "10px",
   border: "1px solid #e5e7eb",
-  overflow: "hidden"
+  overflowX: "auto",
+  overflowY: "hidden",
+  WebkitOverflowScrolling: "touch"
 };
 
 const table = {

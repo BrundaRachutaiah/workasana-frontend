@@ -40,7 +40,7 @@ const Teams = () => {
 
   return (
     <Layout>
-      <LoadingOverlay show={isLoading} label="Loading teams…" />
+      <LoadingOverlay show={isLoading} label="Loading teams..." />
       {/* HEADER */}
       <div style={header}>
         <h1 style={title}>Teams</h1>
@@ -78,7 +78,9 @@ export default Teams;
 const header = {
   display: "flex",
   justifyContent: "space-between",
-  alignItems: "center"
+  alignItems: "center",
+  flexWrap: "wrap",
+  gap: "10px"
 };
 
 const title = {
@@ -97,7 +99,7 @@ const newBtn = {
 
 const grid = {
   display: "flex",
-  gap: "20px",
+  gap: "12px",
   marginTop: "20px",
   flexWrap: "wrap"
 };

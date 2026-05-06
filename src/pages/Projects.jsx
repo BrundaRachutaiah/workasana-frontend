@@ -42,7 +42,7 @@ const Projects = () => {
     <Layout>
       <LoadingOverlay show={isLoading} label="Loading projects…" />
       {/* Header */}
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
         <h1 style={{ fontSize: "20px", fontWeight: 600 }}>
           Projects
         </h1>

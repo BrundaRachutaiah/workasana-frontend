@@ -88,7 +88,7 @@ const Dashboard = () => {
       </p>
 
       <div style={{ marginBottom: "30px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
           <div
             style={{
               display: "flex",
@@ -162,7 +162,7 @@ const Dashboard = () => {
       </div>
 
       <div>
-        <div style={{ display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
           <h2 style={{ fontSize: "16px", fontWeight: 600 }}>My Tasks</h2>
 
           <button

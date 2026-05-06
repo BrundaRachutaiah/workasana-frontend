@@ -12,7 +12,9 @@ const TaskCard = ({ task }) => {
         background: "#f9fafb",
         borderRadius: "12px",
         padding: "16px",
-        width: "280px",
+        width: "100%",
+        maxWidth: "320px",
+        flex: "1 1 280px",
         border: "1px solid #eee",
         cursor: "pointer"
       }}

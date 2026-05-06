@@ -23,7 +23,9 @@ const TeamCard = ({ team }) => {
         background: "#f9fafb",
         borderRadius: "12px",
         padding: "16px",
-        width: "260px",
+        width: "100%",
+        maxWidth: "320px",
+        flex: "1 1 260px",
         border: "1px solid #eee",
         cursor: "pointer"
       }}
