@@ -85,7 +85,8 @@ const TaskForm = ({ onClose, onCreated, projectId }) => {
         delete payload.timeToComplete;
       }
 
-      await api.post("/tasks", payload);
+      const res = await api.post("/tasks", payload);
+      const createdTask = res?.data;
 
       setForm({
         name: "",
@@ -99,7 +100,7 @@ const TaskForm = ({ onClose, onCreated, projectId }) => {
         timeToComplete: ""
       });
 
-      await onCreated?.();
+      await onCreated?.(createdTask);
       onClose?.();
     } catch (err) {
       const message = err.response?.data?.message || "Failed to create task";

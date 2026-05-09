@@ -22,7 +22,7 @@ const Dashboard = () => {
   const [showProjectFilter, setShowProjectFilter] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchData = async () => {
+  const fetchData = async ({ preserveTaskId } = {}) => {
     try {
       setIsLoading(true);
       const projRes = await api.get("/projects");
@@ -30,7 +30,14 @@ const Dashboard = () => {
       const taskRes = await api.get(taskUrl);
 
       setProjects(projRes.data);
-      setTasks(taskRes.data);
+      const fetchedTasks = Array.isArray(taskRes.data) ? taskRes.data : [];
+      setTasks((prev) => {
+        if (!preserveTaskId) return fetchedTasks;
+        const alreadyThere = fetchedTasks.some((t) => t?._id === preserveTaskId);
+        if (alreadyThere) return fetchedTasks;
+        const preserved = (Array.isArray(prev) ? prev : []).find((t) => t?._id === preserveTaskId);
+        return preserved ? [preserved, ...fetchedTasks] : fetchedTasks;
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -46,6 +53,18 @@ const Dashboard = () => {
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id]);
+
+  const handleTaskCreated = async (createdTask) => {
+    const createdId = createdTask?._id;
+    if (createdId) {
+      setTasks((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some((t) => t?._id === createdId)) return list;
+        return [createdTask, ...list];
+      });
+    }
+    await fetchData({ preserveTaskId: createdId });
+  };
 
   const term = searchTerm.trim().toLowerCase();
   const projectsAfterStatus = projectStatusFilter
@@ -192,7 +211,7 @@ const Dashboard = () => {
       </div>
 
       {showTaskModal && (
-        <TaskForm onClose={() => setShowTaskModal(false)} onCreated={fetchData} />
+        <TaskForm onClose={() => setShowTaskModal(false)} onCreated={handleTaskCreated} />
       )}
 
       {showProjectModal && (

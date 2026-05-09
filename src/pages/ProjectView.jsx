@@ -18,14 +18,21 @@ const ProjectView = () => {
   const [sortMode, setSortMode] = useState("Newest First");
   const [updatingTaskId, setUpdatingTaskId] = useState(null);
 
-  const fetchData = async () => {
+  const fetchData = async ({ preserveTaskId } = {}) => {
     try {
       setIsLoading(true);
       const projRes = await api.get(`/projects/${id}`);
       const taskRes = await api.get(`/tasks?project=${id}`);
 
       setProject(projRes.data);
-      setTasks(taskRes.data);
+      const fetchedTasks = Array.isArray(taskRes.data) ? taskRes.data : [];
+      setTasks((prev) => {
+        if (!preserveTaskId) return fetchedTasks;
+        const alreadyThere = fetchedTasks.some((t) => t?._id === preserveTaskId);
+        if (alreadyThere) return fetchedTasks;
+        const preserved = (Array.isArray(prev) ? prev : []).find((t) => t?._id === preserveTaskId);
+        return preserved ? [preserved, ...fetchedTasks] : fetchedTasks;
+      });
     } catch (err) {
       console.error(err);
     } finally {
@@ -36,6 +43,19 @@ const ProjectView = () => {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  const handleTaskCreated = async (createdTask) => {
+    const createdId = createdTask?._id;
+    if (createdId) {
+      setTasks((prev) => {
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some((t) => t?._id === createdId)) return list;
+        return [createdTask, ...list];
+      });
+    }
+
+    await fetchData({ preserveTaskId: createdId });
+  };
 
   const updateTaskStatus = async (taskId, status) => {
     let previousTask;
@@ -289,7 +309,7 @@ const ProjectView = () => {
       {showTaskModal && (
   <TaskForm
     onClose={() => setShowTaskModal(false)}
-    onCreated={fetchData}
+    onCreated={handleTaskCreated}
     projectId={id}   // 🔥 important
   />
 )}
